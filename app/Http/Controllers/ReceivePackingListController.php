@@ -35,6 +35,8 @@ class ReceivePackingListController extends Controller
                 $reader = IOFactory::createReader(ucfirst($extension));
                 $spreadsheet = $reader->load($filePath);
                 $sheet = $spreadsheet->getActiveSheet();
+                $sheetNames = $spreadsheet->getSheetNames();
+
                 $DONumber = [];
 
                 $rowIndex = 14;
@@ -43,6 +45,20 @@ class ReceivePackingListController extends Controller
 
                 // periksa tipe template
                 $templateType = 1;
+
+                if (in_array('Result1', $sheetNames)) {
+                    $sheetIndex = $spreadsheet->getIndex(
+                        $spreadsheet->getSheetByName('Result1')
+                    );
+
+                    $spreadsheet->getActiveSheetIndex($sheetIndex);
+                    $sheet = $spreadsheet->getActiveSheet();
+                    $flagUpdate = strtolower(trim($sheet->getCell('A2')->getCalculatedValue()));
+                    if (str_contains($flagUpdate, 'update')) {
+                        $templateType = 4;
+                    }
+                }
+
                 if ($sheet->getCell('A3')->getCalculatedValue()) {
                     if (str_contains(strtolower($sheet->getCell('A2')->getCalculatedValue()), 'omron')) {
                         $templateType = 3;
@@ -57,7 +73,7 @@ class ReceivePackingListController extends Controller
                         $notStandardList[] = [
                             'case' => 'template_format',
                             'message' => 'DO Number is empty, please check the format',
-                            'file' => $fileName
+                            'file' => $fileName,
                         ];
                         continue;
                     }
@@ -182,6 +198,42 @@ class ReceivePackingListController extends Controller
                         ];
 
                         $rowIndex++;
+                    }
+                } elseif ($templateType === 4) {
+                    $rowIndex = 6;
+
+                    while (!empty($sheet->getCell('C' . $rowIndex)->getCalculatedValue())) { // patokan dari kolom C                
+                        $_pallet = trim($sheet->getCell('L' . $rowIndex)->getCalculatedValue());;
+
+                        $_do_number = $sheet->getCell('A' . $rowIndex)->getCalculatedValue();
+                        $_date = trim($sheet->getCell('F' . $rowIndex)->getValue());
+                        if (empty($_date)) {
+                            $notStandardList[] = [
+                                'case' => 'date',
+                                'message' => 'Date on line ' . $rowIndex . ' is empty',
+                                'file' => $fileName
+                            ];
+                            $rowIndex++;
+                            continue;
+                        }
+                        $_date_o = \Carbon\Carbon::instance(Date::excelToDateTimeObject($_date));
+
+                        $_qty_del = str_replace(',', '', trim($sheet->getCell('G' . $rowIndex)->getCalculatedValue()));
+                        $_qty_ship = str_replace(',', '', trim($sheet->getCell('H' . $rowIndex)->getCalculatedValue()));
+                        $data[] = [
+                            'delivery_doc' => $_do_number,
+                            'created_by' => $request->user_id,
+                            'created_at' => date('Y-m-d H:i:s'),
+                            'item_code' => trim($sheet->getCell('C' . $rowIndex)->getCalculatedValue()),
+                            'delivery_date' => $_date_o->format('Y-m-d'),
+                            'delivery_quantity' => $_qty_del,
+                            'ship_quantity' => $_qty_ship,
+                            'pallet' => $_pallet,
+                            'item_name' => ''
+                        ];
+
+                        $rowIndex++;
+                        $DONumber[] = $_do_number;
                     }
                 } else {
                     $notStandardList[] = [
