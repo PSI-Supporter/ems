@@ -54,11 +54,17 @@ class ReturnController extends Controller
                 DB::raw("MAX(RETSCN_CNFRMDT) RETSCN_CNFRMDT_MAX"),
             ]);
 
-        $uniquePSN = $dataReturnResume->pluck('RETSCN_SPLDOC')->unique()->toArray();
-
         $dataReq = DB::connection('sqlsrv_wms')->table("SPL_TBL")
             ->whereIn('SPL_ITMCD', $request->rm)
-            ->whereIn('SPL_DOC', $uniquePSN)
+            ->whereIn('SPL_DOC', function ($q) use ($request) {
+                $q->from('RETSCN_TBL')
+                    ->where('RETSCN_CNFRMDT', '>=', $request->dateFrom)
+                    ->where('RETSCN_CNFRMDT', '<=', $request->dateTo)
+                    ->groupBy('RETSCN_SPLDOC')
+                    ->select(
+                        'RETSCN_SPLDOC',
+                    );
+            })
             ->groupBy('SPL_DOC', 'SPL_ITMCD')->select(
                 'SPL_DOC',
                 'SPL_ITMCD',
