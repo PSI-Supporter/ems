@@ -14,6 +14,7 @@ use App\Http\Controllers\RepairDataController;
 use App\Http\Controllers\ReturnController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
@@ -82,6 +83,22 @@ Route::prefix('password')->group(function () {
 
 Route::prefix('users')->group(function () {
     Route::post('login', [UserController::class, 'login']);
+    Route::post('login-desktop', [UserController::class, 'loginCIDesktop']);
+    Route::get('check-db', function () {
+        try {
+            DB::connection('sqlsrv_wms')->getPdo();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Database connected!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Database connection failed!',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
 });
 
 Route::prefix('engtrial')->group(function () {
