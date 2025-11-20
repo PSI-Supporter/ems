@@ -6,6 +6,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ICTController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LabelController;
+use App\Http\Controllers\MenuAccessController;
 use App\Http\Controllers\ProductionController;
 use App\Http\Controllers\QPITController;
 use App\Http\Controllers\RatingController;
@@ -123,6 +124,10 @@ Route::prefix('item')->group(function () {
 Route::prefix('receiving')->group(function () {
     Route::post('upload-pl', [ReceivePackingListController::class, 'uploadSpreadsheet']);
     Route::get('diff-with-master', [ReceivePackingListController::class, 'getDiffWithMaster']);
+});
+
+Route::prefix('menu')->group(function () {
+    Route::get('search-by-user-group', [MenuAccessController::class, 'getByUserGroup']);
 });
 
 Route::post('/welcome', function () {
