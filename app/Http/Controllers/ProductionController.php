@@ -2201,6 +2201,8 @@ class ProductionController extends Controller
                                         'CALCULATE_USE' => $_qtyContextUseLabel,
                                         'BALANCE_LABEL' => $lm->QTY,
                                         'RESULT' => '',
+                                        'JOB_AT' => $h->FLAGJOBNO,
+                                        'JOB_CLOSE_AT' => $h->LUPDTR
                                     ];
                                     if (!in_array($lm->UNQ, $scannedLabelID)) {
                                         $scannedLabelID[] = $lm->UNQ;
@@ -2217,6 +2219,40 @@ class ProductionController extends Controller
             }
         }
         // calculateproces 1st
+
+        // dua kali penyaringan tanpa lihat sequence SPID
+        foreach ($scannedLabels as $l) {
+            if ($l->QTY > 0) {
+                foreach ($anotherRequirement as $h) {
+                    $reqBal = $h->REQQT - $h->FILLQT;
+                    if ($reqBal > 0) {
+                        if ($l->ITMCD == $h->MBOM_ITMCD) {
+                            $_qtyContextUseLabel = $reqBal;
+                            if ($l->QTY >= $reqBal) {
+                                $h->FILLQT += $reqBal;
+                                $l->QTY -= $reqBal;
+                            } else {
+                                $_qtyContextUseLabel = $l->QTY;
+                                $h->FILLQT += $l->QTY;
+                                $l->QTY = 0;
+                            }
+                            $scannedLabelDetails[] = [
+                                'ITMCD' => $l->ITMCD,
+                                'QTY' => $l->QTY,
+                                'UNQ' => $l->UNQ,
+                                'LINE' => '',
+                                'CLS_LUPDT' => '',
+                                'CALCULATE_USE' => $_qtyContextUseLabel,
+                                'BALANCE_LABEL' => $l->QTY,
+                                'RESULT' => '',
+                                'JOB_AT' => $h->FLAGJOBNO,
+                                'JOB_CLOSE_AT' => $h->LUPDTR
+                            ];
+                        }
+                    }
+                }
+            }
+        }
 
         // recap 1st
         $message = '';
