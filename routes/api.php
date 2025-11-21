@@ -152,4 +152,5 @@ Route::prefix('disposal')->group(function () {
 # Terkait laporan
 Route::prefix('report')->group(function () {
     Route::post('logical-balance-return-report', [ReturnController::class, 'generateLogicalBalanceReport']);
+    Route::get('fg-breakdown-txid', [DisposeItemController::class, 'generateCustomsReportFG']);
 });
